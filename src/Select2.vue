@@ -5,6 +5,7 @@
 </template>
 
 <script>
+/* global $ */
 import("select2/dist/js/select2.full").then(m => m.default());
 import 'select2/dist/css/select2.min.css'
 export default {
@@ -79,18 +80,18 @@ export default {
   return values.map(opt => {
     if (typeof opt !== 'object') return opt; // Early return for non-objects
 
-    opt.id = opt.hasOwnProperty(id_field) ? opt[id_field] : opt.id; // Conditional assignment for id
+    opt.id = Object.prototype.hasOwnProperty.call(opt, id_field) ? opt[id_field] : opt.id; // Conditional assignment for id
 
     if (typeof text_field !== 'string') { // Handle single or multiple text fields
       const texts = [];
       for (const m of Object.keys(text_field)) { // Use Object.keys for iteration efficiency
-        if (opt.hasOwnProperty(text_field[m])) {
+        if (Object.prototype.hasOwnProperty.call(opt, text_field[m])) {
           texts.push(opt[text_field[m]]);
         }
       }
       opt.text = texts.join(text_sep || ''); // Use default separator if not defined
     } else {
-      opt.text = opt.hasOwnProperty(text_field) ? opt[text_field] : opt.text; // Conditional assignment for text
+      opt.text = Object.prototype.hasOwnProperty.call(opt, text_field) ? opt[text_field] : opt.text; // Conditional assignment for text
     }
 
     return opt;
