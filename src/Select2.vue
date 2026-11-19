@@ -5,19 +5,19 @@
 </template>
 
 <script>
-/* global $ */
-import("select2/dist/js/select2.full").then(m => m.default());
+
+
 import 'select2/dist/css/select2.min.css'
 export default {
   name: 'Select2',
   data() {
     return {
-      select2: null
+      select2: null, disposed: false
     };
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'change', 'select', 'error'],
   props: {
-    modelValue: [String, Array], // previously was `value: String`
+    modelValue: [String, Number, Array], // previously was `value: String`
     id: {
       type: String,
       default: ''
@@ -44,7 +44,7 @@ export default {
     },
     settings: {
       type: Object,
-      default: () => {}
+      default: () => ({})
     },
     id_field: {                 //if option item has other identity key
       type: String,
@@ -60,6 +60,11 @@ export default {
     },
   },
   watch: {
+    settings: { deep: true, handler() { this.setOption(this.options); } },
+    placeholder() { this.setOption(this.options); },
+    id_field() { this.setOption(this.options); },
+    text_field: { deep: true, handler() { this.setOption(this.options); } },
+    text_sep() { this.setOption(this.options); },
     options: {
       handler(val) {
         this.setOption(val);
@@ -77,7 +82,8 @@ export default {
     getOptionDatas(values = []) {
   const { id_field, text_field, text_sep } = this; // Destructuring for efficiency
 
-  return values.map(opt => {
+  return (Array.isArray(values) ? values : []).filter(opt => opt != null).map(item => {
+    const opt = typeof item === 'object' ? { ...item } : item;
     if (typeof opt !== 'object') return opt; // Early return for non-objects
 
     opt.id = Object.prototype.hasOwnProperty.call(opt, id_field) ? opt[id_field] : opt.id; // Conditional assignment for id
@@ -98,43 +104,64 @@ export default {
   });
 },
     setOption(val = []) {
+      if (!this.select2) return;
+      this.select2.select2('destroy');
       this.select2.empty();
       this.select2.select2({
         placeholder: this.placeholder,
+        minimumResultsForSearch: 10,
         ...this.settings,
-        minimumResultsForSearch:5,
         data: this.getOptionDatas(val)
       });
       this.setValue(this.modelValue);
     },
     setValue(val) {
+      if (!this.select2) return;
       if (val instanceof Array) {
         this.select2.val([...val]);
       } else {
-        this.select2.val([val]);
+        this.select2.val(val == null ? null : String(val));
       }
-      this.select2.trigger('change');
+      this.select2.trigger('change.select2');
     }
   },
-  mounted() {
-    setTimeout(()=>{                        //delay to fix some issues
-    this.select2 = $(this.$el)
-      .find('select')
-      .select2({
+  async mounted() {
+    try {
+      const [jqueryModule, select2Module] = await Promise.all([
+        import('jquery'), import('select2/dist/js/select2.full')
+      ]);
+      if (this.disposed) return;
+      const jquery = jqueryModule.default || jqueryModule;
+      if (!jquery.fn.select2) {
+        const install = select2Module.default || select2Module;
+        install(window, jquery);
+      }
+      this.select2 = jquery(this.$el).find('select');
+      this.select2.select2({
         placeholder: this.placeholder,
+        minimumResultsForSearch: 10,
         ...this.settings,
-        minimumResultsForSearch:10,
         data: this.getOptionDatas(this.options)
-      })
-      .on('select2:select select2:unselect', ev => {
-        this.$emit('update:modelValue', this.select2.val());
-        this.$emit('select', ev['params']['data']);
       });
-    this.setValue(this.modelValue);
-    },300);
+      this.select2.on('change.vue3Select2', () => {
+        const value = this.select2.val();
+        this.$emit('update:modelValue', value);
+        this.$emit('change', value);
+      });
+      this.select2.on('select2:select.vue3Select2 select2:unselect.vue3Select2', event => {
+        this.$emit('select', event.params.data);
+      });
+      this.setValue(this.modelValue);
+    } catch (error) {
+      if (!this.disposed) this.$emit('error', error);
+    }
   },
   beforeUnmount() {
-    this.select2.select2('destroy');
+    this.disposed = true;
+    if (!this.select2) return;
+    this.select2.off('.vue3Select2');
+    if (this.select2.data('select2')) this.select2.select2('destroy');
+    this.select2 = null;
   }
 };
 </script>

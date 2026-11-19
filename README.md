@@ -31,7 +31,7 @@ app.component('Select2', Select2)
 // import Select2Component
 import Select2 from 'vue3-select2';
 
-Note: You need to import jQuery globally
+As of 0.2.1, jQuery is loaded internally; global assignment is optional.
 ``` javascript
 // import jQuery globally before creating App
 import $ from 'jquery';

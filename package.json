@@ -1,6 +1,6 @@
 {
   "name": "vue3-select2",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "select2 component in vue3.",
   "repository": {
     "type": "git",
@@ -36,8 +36,8 @@
   },
   "homepage": "https://github.com/rbanis92/vue3-select2#readme",
   "dependencies": {
-    "jquery": "^3.3.1",
-    "select2": "^4.0.7-rc.0"
+    "jquery": "^3.7.1",
+    "select2": "^4.0.13"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
