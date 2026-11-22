@@ -1,96 +1,146 @@
 # vue3-select2
 
-## Related Versions
+[Select2](https://select2.org/) as a Vue 3 component: `v-model`, single and multiple select, AJAX live
+search, custom id/text fields, option groups and modal-friendly dropdowns.
 
-vue3-select2 is baseed on these plugins and libs(version):
-- [vue(>= 3.0-beta)](https://github.com/vuejs/vue-next)
-- [jQuery](https://jquery.com/)
-- [select2](https://select2.github.io/)
+Built on [Vue 3](https://vuejs.org/), [jQuery](https://jquery.com/) and [Select2 4](https://select2.org/).
+jQuery and Select2 are installed as dependencies and loaded by the component.
 
-## How to use 
----
-### Install
-``` cmd
-// npm install
-npm install vue3-select2 --save
+## Install
+
+```bash
+npm install vue3-select2
 ```
 
-### Use as component
-1. import as global component.
-``` javascript
-import Select2 from 'vue3-select2';
-// Create a Vue application
-const app = Vue.createApp({})
+## Usage
 
-// Define a new global component called button-counter
+Register it globally:
+
+```js
+import { createApp } from 'vue'
+import Select2 from 'vue3-select2'
+
+const app = createApp(App)
 app.component('Select2', Select2)
 ```
 
-2. import into a single component.
-``` javascript
-// import Select2Component
-import Select2 from 'vue3-select2';
+or locally:
 
-As of 0.2.1, jQuery is loaded internally; global assignment is optional.
-``` javascript
-// import jQuery globally before creating App
-import $ from 'jquery';
-window.$ = window.jQuery = $;
-import Select2 from 'vue3-select2'; // while using select2 as global component
-const app = Vue.createApp({})
+```vue
 <template>
-  <div>
-    <Select2 v-model="myValue" :options="myOptions" :settings="{ settingOption: value, settingOption: value }" @change="myChangeEvent($event)" @select="mySelectEvent($event)" />
-    <h4>Value: {{ myValue }}</h4>
-  </div>
+  <Select2
+    v-model="myValue"
+    :options="myOptions"
+    placeholder="Choose one"
+    :settings="{ allowClear: true }"
+    @change="onChange"
+    @select="onSelect"
+  />
+  <p>Value: {{ myValue }}</p>
 </template>
+
 <script>
+import Select2 from 'vue3-select2'
+
 export default {
-    // declare Select2Component
-    components: {Select2},
-    data() {
-        return {
-            myValue: '',
-            myOptions: ['op1', 'op2', 'op3'] // or [{id: key, text: value}, {id: key, text: value}]
-        }
-    },
-    methods: {
-        myChangeEvent(val){
-            console.log(val);
-        },
-        mySelectEvent({id, text}){
-            console.log({id, text})
-        }
+  components: { Select2 },
+  data() {
+    return {
+      myValue: '',
+      myOptions: ['op1', 'op2', 'op3'] // or [{ id: 1, text: 'One' }, ...]
     }
+  },
+  methods: {
+    onChange(value) { console.log(value) },
+    onSelect({ id, text }) { console.log({ id, text }) }
+  }
 }
 </script>
 ```
 
-### Options
-- `options`: `option[]`
-  - select options for select2
-  - `option`: `{id: key, text: value}` or `string`
-- `v-model`: option value that is selected
-  - `id` or `string` while multiple is disable
-  - `id[]` or `string[]` while multiple is enable
-- `update:modelValue`
-  - callback when option selected change
-  - return value
-  - parmas: same with `v-model`
-- `select`
-  - callback when option selected
-  - parmas: `option`(`{id: value, text: key, selected: ifSelected}` or `string`)
-- `disabled`
-  - if select is disabled
-- `placeholder`
-  - placeholder attribute for select element
-- `id`
-  - id attribute for select element
-- `id_field`: `other field name instead of id field`
-- `name`
-  - name attribute for select element
-- `text_field`: `one or multiple field name to display as text. Example:name or ['name','phone']`
-- `text_sep`: `text seperator for multiple field name to display as text`
-- `settings`
-  - configurable settings, see [Select2 options API](https://select2.org/configuration/options-api)
-  - `setting`: `{ settingOption: value, settingOption: value }`
+### Multiple
+
+```vue
+<Select2 v-model="tags" :options="tagOptions" multiple />
+```
+
+### Custom fields
+
+```vue
+<!-- items look like { customer_id: 7, name: 'Ann', phone: '555-1234' } -->
+<Select2 v-model="customer" :options="customers"
+         id_field="customer_id" :text_field="['name', 'phone']" text_sep=" / " />
+```
+
+### Live (AJAX) search
+
+```vue
+<Select2
+  v-model="productId"
+  search-url="/api/products/search"
+  :search-params="{ category: categoryId }"
+  :preselected="[{ id: savedProduct.id, text: savedProduct.name }]"
+/>
+```
+
+The endpoint receives `?q=<term>&page=<n>` plus `searchParams`, and should return:
+
+```json
+{ "results": [{ "id": 1, "text": "Apple" }], "pagination": { "more": true } }
+```
+
+A plain array of items also works. For any other response shape, pass
+`:search-results="(data, params) => ({ results: data.items, pagination: { more: data.hasMore } })"`.
+Results go through `id_field` / `text_field` as well. With live search, the selected item isn't
+in the page, so pass its label with `preselected`.
+
+### Inside a modal
+
+```vue
+<Select2 v-model="value" :options="opts" dropdown-parent="#myModal" />
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `v-model` / `modelValue` | `String \| Number \| Array` | `null` | Selected id, or array of ids when `multiple` |
+| `options` | `Array \| Object` | `[]` | Items: `{id, text}`, primitives, or groups `{text, children: [...]}`. Object maps use their values |
+| `multiple` | `Boolean` | `false` | Allow selecting more than one value |
+| `placeholder` | `String` | `''` | Placeholder text |
+| `disabled` | `Boolean` | `false` | Disable the select |
+| `required` | `Boolean` | `false` | `required` attribute |
+| `id` / `name` | `String` | `''` | Attributes for the underlying `<select>` |
+| `id_field` | `String` | `'id'` | Item key to use as the option id |
+| `text_field` | `String \| Array` | `'text'` | Item key, or keys joined by `text_sep`, to use as the text |
+| `text_sep` | `String` | `' - '` | Separator for multiple `text_field` keys |
+| `settings` | `Object` | `{}` | Any [Select2 option](https://select2.org/configuration/options-api); overrides the defaults below |
+| `isolate` | `Boolean` | `false` | Ignore `selected` flags on items; only `v-model` decides the selection |
+| `preselected` | `Array \| Object` | `[]` | Labels for selected values that are not in `options` |
+| `searchUrl` | `String` | `''` | Enables AJAX live search against this URL |
+| `searchParams` | `Object` | `{}` | Extra query params, read on every request |
+| `searchDelay` | `Number` | `250` | Debounce in ms |
+| `searchResults` | `Function` | `null` | `(data, params) => ({results, pagination})` response mapper |
+| `dropdownParent` | `String \| Element` | `null` | Where to attach the dropdown (e.g. a modal). `dParent` is a deprecated alias |
+
+Defaults passed to Select2 (each can be overridden through `settings`): `width: '100%'`,
+`minimumResultsForSearch: 10` (`0` with `searchUrl`).
+
+## Events
+
+| Event | Payload | When |
+|---|---|---|
+| `update:modelValue` / `change` | value | The user changed the selection |
+| `select` | `{id, text, ...}` | An item was selected |
+| `unselect` | `{id, text, ...}` | An item was removed (multiple / allowClear) |
+| `clear` | – | Cleared with `allowClear` |
+| `open` / `close` | – | Dropdown opened / closed |
+| `error` | `Error` | jQuery / Select2 failed to load |
+
+## Methods (via template ref)
+
+`open()`, `close()`, `focus()`, `getInstance()` (the jQuery-wrapped `<select>`).
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
